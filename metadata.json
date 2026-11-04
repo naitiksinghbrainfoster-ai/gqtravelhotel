@@ -1,0 +1,6 @@
+{
+  "name": "GQ Travel & Hotels | Global Travel & Booking Agency",
+  "description": "Worldwide Hotel, Flight & Holiday Package Reservations, Airport Transfers, Private Jet Charter, Ghana e-Visa & Medical Tourism in Germany. Headquartered in Saarbrücken.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

@@ -84,7 +84,7 @@ The checkout code is integrated, but it will not accept payments until the produ
    supabase functions deploy paypal-checkout --no-verify-jwt
    ```
 
-   Add each production website origin to `PAYPAL_ALLOWED_ORIGINS` as a comma-separated list. For local testing, use the PayPal Sandbox app and `https://api-m.sandbox.paypal.com`; never use Sandbox credentials with the Live API or vice versa.
+   Add each production website origin to `PAYPAL_ALLOWED_ORIGINS` as a comma-separated list. `http://localhost:3000` and `http://127.0.0.1:3000` are accepted for local testing. Use the PayPal Sandbox app and `https://api-m.sandbox.paypal.com` locally; never use Sandbox credentials with the Live API or vice versa.
 
 The browser receives only the public Client ID. The Edge Function verifies the booking price, creates and captures the PayPal order, and saves the payment result. Payment does not automatically confirm room availability; paid reservations remain pending for the team to review. Flight, cruise, transfer, and other quote forms are not included in this accommodation checkout.
 

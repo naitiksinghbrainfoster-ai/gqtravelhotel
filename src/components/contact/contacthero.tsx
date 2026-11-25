@@ -1,13 +1,13 @@
 import React from 'react';
 import { HomeContent, contactPageContentDefaults, homeContentValue } from '../../lib/homeContent';
-import { contactChannels } from '../../lib/contactChannels';
+import { GERMANY_OFFICE_PHONES, HOTEL_EMAIL } from '../../lib/contactChannels';
 
 const icons = {
   chat: <path d="M21 11.5a8.4 8.4 0 0 1-12.4 7.4L3 20.5l1.6-5.4A8.4 8.4 0 1 1 21 11.5z" />,
 };
 
 const ContactHero: React.FC<{ content?: HomeContent }> = ({ content }) => {
-  const quick = contactChannels.map((channel) => ({
+  const quick = [...GERMANY_OFFICE_PHONES, HOTEL_EMAIL].map((channel) => ({
     label: channel.label,
     value: channel.value,
     href: channel.href,

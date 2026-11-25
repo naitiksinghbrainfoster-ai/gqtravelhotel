@@ -1,7 +1,8 @@
 import React, { useEffect, useMemo, type FormEvent } from 'react';
-import { Building2, Image as ImageIcon, LoaderCircle, Pencil, Save, Trash2, Upload, X } from 'lucide-react';
+import { Building2, Image as ImageIcon, LoaderCircle, Pencil, Plus, Save, Trash2, Upload, X } from 'lucide-react';
 
 import type { DataRow, PropertyDraft } from '../utils';
+import type { RoomPricingTable } from '../../src/data/travelData';
 import { asText, formatDate, propertyId } from '../utils';
 import { EmptyState, InlineAlert } from '../components/AdminFeedback';
 
@@ -12,6 +13,154 @@ const amenityOptions = [
   'Free Wi-Fi', 'Air conditioning', 'Kitchen', 'Parking', 'Swimming pool',
   'Breakfast', 'Pet friendly', 'Laundry', 'Work desk', 'Airport transfer',
 ];
+
+function PricingTableEditor({
+  title,
+  description,
+  enabled,
+  table,
+  onToggle,
+  onChange,
+}: {
+  title: string;
+  description: string;
+  enabled: boolean;
+  table: RoomPricingTable;
+  onToggle: (enabled: boolean) => void;
+  onChange: (table: RoomPricingTable) => void;
+}) {
+  const updateTable = (nextTable: RoomPricingTable) => {
+    onChange(nextTable);
+    onToggle(true);
+  };
+
+  return (
+    <section>
+      <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h3 className="mb-1 text-sm font-semibold text-slate-900">{title}</h3>
+          <p className="text-xs text-slate-400">{description}</p>
+        </div>
+        <label className="flex items-center gap-2 text-xs font-medium text-slate-600">
+          <input
+            type="checkbox"
+            checked={enabled}
+            onChange={(event) => onToggle(event.target.checked)}
+            className="h-4 w-4 rounded border-slate-300 text-teal-800 focus:ring-teal-700"
+          />
+          Include {title.toLowerCase()}
+        </label>
+      </div>
+      {enabled && (
+        <>
+          <div className="overflow-x-auto rounded-xl border border-slate-200">
+            <table className="w-full min-w-[620px] text-left">
+              <thead className="bg-slate-50 text-[11px] uppercase tracking-[0.08em] text-slate-500">
+                <tr>
+                  {table.columns.map((heading, columnIndex) => (
+                    <th key={columnIndex} className="px-3 py-2 font-semibold">
+                      <div className="flex min-w-36 items-center gap-2">
+                        <input
+                          type="text"
+                          aria-label={`${title} column ${columnIndex + 1} heading`}
+                          value={heading}
+                          onChange={(event) => {
+                            const columns = [...table.columns];
+                            columns[columnIndex] = event.target.value;
+                            updateTable({ ...table, columns });
+                          }}
+                          className="min-w-0 flex-1 rounded-lg border border-slate-200 bg-white px-2 py-2 text-xs font-medium uppercase tracking-wide text-slate-600 outline-none focus:border-teal-700"
+                        />
+                        <button
+                          type="button"
+                          aria-label={`Remove ${title.toLowerCase()} column ${columnIndex + 1}`}
+                          title="Remove column"
+                          onClick={() => updateTable({
+                            columns: table.columns.filter((_, index) => index !== columnIndex),
+                            rows: table.rows.map((row) => row.filter((_, index) => index !== columnIndex)),
+                          })}
+                          className="rounded-md p-1.5 text-slate-400 hover:bg-rose-50 hover:text-rose-700"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    </th>
+                  ))}
+                  <th className="w-12 px-2 py-3" aria-label="Row actions" />
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {table.rows.map((row, rowIndex) => (
+                  <tr key={rowIndex}>
+                    {table.columns.map((heading, columnIndex) => (
+                      <td key={columnIndex} className="px-3 py-2">
+                        <input
+                          type="text"
+                          aria-label={`${heading || `Column ${columnIndex + 1}`} row ${rowIndex + 1}`}
+                          value={row[columnIndex] ?? ''}
+                          onChange={(event) => {
+                            const rows = table.rows.map((currentRow, index) => (
+                              index === rowIndex
+                                ? table.columns.map((_, cellIndex) => (
+                                  cellIndex === columnIndex ? event.target.value : currentRow[cellIndex] ?? ''
+                                ))
+                                : currentRow
+                            ));
+                            updateTable({ ...table, rows });
+                          }}
+                          className="w-full min-w-28 rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-teal-700"
+                        />
+                      </td>
+                    ))}
+                    <td className="px-2 py-2 text-center">
+                      <button
+                        type="button"
+                        aria-label={`Remove ${title.toLowerCase()} row ${rowIndex + 1}`}
+                        title="Remove row"
+                        onClick={() => updateTable({
+                          ...table,
+                          rows: table.rows.filter((_, index) => index !== rowIndex),
+                        })}
+                        className="rounded-md p-2 text-slate-400 hover:bg-rose-50 hover:text-rose-700"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+                {table.columns.length === 0 && (
+                  <tr><td className="px-4 py-4 text-xs text-slate-400">Add a column to start building the table.</td></tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => updateTable({
+                ...table,
+                rows: [...table.rows, table.columns.map(() => '')],
+              })}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700 hover:border-teal-700 hover:text-teal-800"
+            >
+              <Plus className="h-3.5 w-3.5" /> Add Row
+            </button>
+            <button
+              type="button"
+              onClick={() => updateTable({
+                columns: [...table.columns, `Column ${table.columns.length + 1}`],
+                rows: table.rows.map((row) => [...row, '']),
+              })}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700 hover:border-teal-700 hover:text-teal-800"
+            >
+              <Plus className="h-3.5 w-3.5" /> Add Column
+            </button>
+          </div>
+        </>
+      )}
+    </section>
+  );
+}
 
 export default function PropertiesPage({
   properties,
@@ -241,6 +390,24 @@ export function PropertyEditor({
               <p className="text-xs text-slate-400 sm:col-span-3">Prices are stored and shown in EUR (€).</p>
             </div>
           </section>
+
+          <PricingTableEditor
+            title="Room pricing"
+            description="Optional rates shown on the public property page."
+            enabled={draft.room_pricing_enabled}
+            table={draft.room_pricing}
+            onToggle={(enabled) => updateField('room_pricing_enabled', enabled)}
+            onChange={(table) => updateField('room_pricing', table)}
+          />
+
+          <PricingTableEditor
+            title="Extra room pricing"
+            description="Optional extra-person rates shown on the public property page."
+            enabled={draft.extra_room_pricing_enabled}
+            table={draft.extra_room_pricing}
+            onToggle={(enabled) => updateField('extra_room_pricing_enabled', enabled)}
+            onChange={(table) => updateField('extra_room_pricing', table)}
+          />
 
           <section>
             <h3 className="mb-4 text-sm font-semibold text-slate-900">Amenities</h3>

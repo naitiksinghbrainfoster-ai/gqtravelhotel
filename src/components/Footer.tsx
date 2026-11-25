@@ -4,7 +4,8 @@ import {
   Clock,
   ShieldCheck,
 } from 'lucide-react';
-import { contactChannels } from '../lib/contactChannels';
+import { bookingMenuItems } from '../lib/bookingMenuItems';
+import { GERMANY_OFFICE_PHONES } from '../lib/contactChannels';
 
 const FacebookIcon = () => (
   <svg viewBox="0 0 24 24" aria-hidden="true" className="w-4 h-4 fill-current">
@@ -65,7 +66,7 @@ interface FooterProps {
   onOpenTransferModal: () => void;
 }
 
-export const Footer: React.FC<FooterProps> = ({ onNavigate, onOpenLegal, onOpenBooking, onOpenTransferModal }) => {
+export const Footer: React.FC<FooterProps> = ({ onNavigate, onOpenLegal }) => {
   return (
     <footer id="contact" className="bg-slate-950 text-slate-300 pt-16 pb-12 border-t border-slate-850">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
@@ -92,13 +93,6 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate, onOpenLegal, onOpenB
               About Us
             </a>
 
-            <div className="space-y-2 pt-2 text-xs text-slate-300">
-              <div className="flex items-start gap-2">
-                <MapPin className="w-4 h-4 text-teal-400 shrink-0 mt-0.5" />
-                <span>Hochstr. 145, 66115 Saarbrücken, Germany</span>
-              </div>
-            </div>
-
             {/* Social Icons */}
             <div className="pt-2 flex flex-wrap items-center gap-3 text-slate-400">
               {socialLinks.map(({ href, label, Icon }) => (
@@ -120,19 +114,18 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate, onOpenLegal, onOpenB
           {/* Contact Channels (Cols 5-7) */}
           <div className="lg:col-span-3 space-y-4">
             <h4 className="text-sm font-bold uppercase tracking-wider text-white">
-              Reach Us
+              Visit Us
             </h4>
-            <div className="space-y-3 text-xs">
-              {contactChannels.map((channel) => (
-                <a
-                  key={channel.label}
-                  href={channel.href}
-                  {...(channel.href.startsWith('https:') ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
-                  className="block rounded-xl border border-white/10 bg-white/5 p-3 text-white transition hover:bg-white/10"
-                >
-                  <span className="block text-[10px] font-bold uppercase text-teal-400">{channel.label}</span>
-                  <span className="mt-1 block break-all font-mono">{channel.value}</span>
-                </a>
+            <div className="space-y-1 text-xs text-slate-300">
+              <div className="flex items-start gap-2">
+                <MapPin className="w-4 h-4 text-teal-400 shrink-0 mt-0.5" />
+                <span>Hochstr. 145, 66115 – Saarbruecken</span>
+              </div>
+              {GERMANY_OFFICE_PHONES.map((phone) => (
+                <p key={phone.href}>
+                  <strong className="text-white">{phone.label}</strong>{' '}
+                  <a href={phone.href} className="cursor-pointer hover:text-teal-300">{phone.value}</a>
+                </p>
               ))}
             </div>
           </div>
@@ -141,7 +134,7 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate, onOpenLegal, onOpenB
           <div className="lg:col-span-3 space-y-4">
             <h4 className="text-sm font-bold uppercase tracking-wider text-white flex items-center gap-2">
               <Clock className="w-4 h-4 text-teal-400" />
-              <span>Office Working Hours</span>
+              <span>Working Hours</span>
             </h4>
             <div className="space-y-2 text-xs text-slate-300">
               <div className="flex justify-between border-b border-white/10 pb-1.5">
@@ -150,14 +143,10 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate, onOpenLegal, onOpenB
               </div>
               <div className="flex justify-between border-b border-white/10 pb-1.5">
                 <span className="text-slate-400">Saturday:</span>
-                <span className="font-semibold text-white">11:00 – 14:00</span>
+                <span className="font-semibold text-white">10:30 – 14:30</span>
               </div>
               <div className="flex justify-between border-b border-white/10 pb-1.5">
                 <span className="text-slate-400">Sunday:</span>
-                <span className="text-rose-400">Closed</span>
-              </div>
-              <div className="flex justify-between pb-1.5">
-                <span className="text-slate-400">Public Holidays:</span>
                 <span className="text-rose-400">Closed</span>
               </div>
             </div>
@@ -174,45 +163,16 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate, onOpenLegal, onOpenB
               Direct Bookings
             </h4>
             <ul className="space-y-2 text-xs">
-              <li>
-                <button
-                  onClick={onOpenBooking}
-                  className="text-slate-400 hover:text-white transition-colors"
-                >
-                  Book Hotels Worldwide
-                </button>
-              </li>
-              <li>
-                <button
-                  onClick={onOpenTransferModal}
-                  className="text-slate-400 hover:text-white transition-colors"
-                >
-                  Airport Transfers Saarbrücken
-                </button>
-              </li>
-              <li>
-                <button
-                  onClick={onOpenTransferModal}
-                  className="text-slate-400 hover:text-white transition-colors"
-                >
-                  Accra Airport Transfers
-                </button>
-              </li>
-              <li>
-                <a href="/private-jet-rentals" className="text-slate-400 hover:text-white transition-colors">
-                  Private Jet Charter
-                </a>
-              </li>
-              <li>
-                <a href="#services" className="text-slate-400 hover:text-white transition-colors">
-                  Ghana e-Visa 72h
-                </a>
-              </li>
-              <li>
-                <a href="#services" className="text-slate-400 hover:text-white transition-colors">
-                  Medical Tourism Germany
-                </a>
-              </li>
+              {bookingMenuItems.map((item) => (
+                <li key={item.href}>
+                  <a
+                    href={item.href}
+                    className="cursor-pointer text-slate-400 hover:text-white transition-colors"
+                  >
+                    {item.label}
+                  </a>
+                </li>
+              ))}
             </ul>
           </div>
         </div>
@@ -232,7 +192,7 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate, onOpenLegal, onOpenB
                 }
                 onOpenLegal('terms');
               }}
-              className="text-slate-400 hover:text-teal-300 transition-colors"
+              className="cursor-pointer text-slate-400 hover:text-teal-300 transition-colors"
             >
               General Terms &amp; Conditions
             </button>
@@ -245,7 +205,7 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate, onOpenLegal, onOpenB
                 }
                 onOpenLegal('imprint');
               }}
-              className="text-slate-400 hover:text-teal-300 transition-colors"
+              className="cursor-pointer text-slate-400 hover:text-teal-300 transition-colors"
             >
               Impressum (Imprint)
             </button>
@@ -258,7 +218,7 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate, onOpenLegal, onOpenB
                 }
                 onOpenLegal('privacy');
               }}
-              className="text-slate-400 hover:text-teal-300 transition-colors"
+              className="cursor-pointer text-slate-400 hover:text-teal-300 transition-colors"
             >
               Privacy Policy (GDPR)
             </button>
@@ -271,7 +231,7 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate, onOpenLegal, onOpenB
                 }
                 onOpenLegal('airport-terms');
               }}
-              className="text-slate-400 hover:text-teal-300 transition-colors"
+              className="cursor-pointer text-slate-400 hover:text-teal-300 transition-colors"
             >
               Airport Transfer Terms
             </button>
@@ -284,7 +244,7 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate, onOpenLegal, onOpenB
                 }
                 onOpenLegal('accra-terms');
               }}
-              className="text-slate-400 hover:text-teal-300 transition-colors"
+              className="cursor-pointer text-slate-400 hover:text-teal-300 transition-colors"
             >
               Accra Transfers Terms
             </button>

@@ -1,5 +1,5 @@
 import { Building2, CalendarDays, FileText, LayoutDashboard, MessageSquare } from 'lucide-react';
-import { DESTINATIONS, FAQS, NEWS_ARTICLES, SERVICES, TEAM_MEMBERS, TESTIMONIALS } from '../src/data/travelData';
+import { DESTINATIONS, FAQS, NEWS_ARTICLES, SERVICES, TEAM_MEMBERS, TESTIMONIALS, type RoomPricingTable } from '../src/data/travelData';
 
 export type AdminSection = 'overview' | 'properties' | 'bookings' | 'enquiries' | 'content';
 
@@ -22,6 +22,10 @@ export type PropertyDraft = {
   featured: boolean;
   status: 'draft' | 'published';
   amenities: string[];
+  room_pricing_enabled: boolean;
+  room_pricing: RoomPricingTable;
+  extra_room_pricing_enabled: boolean;
+  extra_room_pricing: RoomPricingTable;
 };
 
 export const navigation: { id: AdminSection; label: string; icon: typeof LayoutDashboard }[] = [
@@ -1124,6 +1128,24 @@ export const emptyDraft: PropertyDraft = {
   featured: false,
   status: 'draft',
   amenities: [],
+  room_pricing_enabled: false,
+  room_pricing: {
+    columns: ['Room type', 'Standard (€)', 'Comfort (€)', 'Extra person (€)'],
+    rows: [
+      ['Single room', '55', '65', '0'],
+      ['Double room', '60', '70', '10'],
+      ['Triple room', '70', '80', '10'],
+      ['Apartment triple room', '70', '80', '10'],
+    ],
+  },
+  extra_room_pricing_enabled: false,
+  extra_room_pricing: {
+    columns: ['Room type', 'Standard extra person (€)', 'Business extra person (€)'],
+    rows: [
+      ['Deluxe Room Twin Beds', '€10', '€10'],
+      ['Superior Triple Bedroom', '€10 (2nd), €15 (3rd)', '€10 (2nd), €17 (3rd)'],
+    ],
+  },
 };
 
 export const asText = (value: unknown) => (value === null || value === undefined ? '' : String(value));

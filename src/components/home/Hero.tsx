@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Search, Calendar, Users, MapPin, Plane, Hotel, Car, Compass, Navigation, Ship } from 'lucide-react';
-import { globalFlightContentDefaults, homeContentValue, homeHeroDefaults, HomeContent } from '../../lib/homeContent';
+import { homeContentValue, homeHeroDefaults, HomeContent } from '../../lib/homeContent';
 
 const kickerLetterDelayMs = 75;
 const letterAnimationDurationMs = 350;
@@ -87,12 +87,7 @@ export const Hero: React.FC<HeroProps> = ({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (activeTab === 'flights') {
-      const bookingUrl = homeContentValue(
-        content,
-        'global_flight_portal_url',
-        globalFlightContentDefaults.global_flight_portal_url,
-      );
-      window.location.assign(bookingUrl);
+      onNavigate('/global-flight-booking');
       return;
     }
     if (activeTab === 'transfers') {
@@ -104,7 +99,7 @@ export const Hero: React.FC<HeroProps> = ({
       return;
     }
     if (activeTab === 'cruise') {
-      onSearch({ tab: activeTab, location, checkIn, checkOut, guests });
+      onNavigate('/cruise-booking');
       return;
     }
     onSearch({ tab: activeTab, location, checkIn, checkOut, guests });
@@ -167,7 +162,7 @@ export const Hero: React.FC<HeroProps> = ({
 
             <button
               type="button"
-              onClick={() => onNavigate('/global-flight')}
+              onClick={() => onNavigate('/global-flight-booking')}
               className={`flex min-w-0 w-full cursor-pointer items-center justify-center gap-1.5 rounded-xl border-2 px-2 py-2 text-center font-medium leading-tight transition-all sm:w-auto sm:px-3.5 ${
                 activeTab === 'flights'
                   ? 'bg-teal-800 text-white border-teal-800 shadow-xs'
@@ -219,7 +214,7 @@ export const Hero: React.FC<HeroProps> = ({
 
             <button
               type="button"
-              onClick={() => onNavigate('/cruise')}
+              onClick={() => onNavigate('/cruise-booking')}
               className={`flex min-w-0 w-full cursor-pointer items-center justify-center gap-1.5 rounded-xl border-2 px-2 py-2 text-center font-medium leading-tight transition-all sm:w-auto sm:px-3.5 ${
                 activeTab === 'cruise'
                   ? 'bg-teal-800 text-white border-teal-800 shadow-xs'

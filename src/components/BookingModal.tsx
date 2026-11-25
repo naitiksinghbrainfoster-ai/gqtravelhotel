@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { X, CheckCircle2, ShieldCheck, Calendar, Users, Building, AlertCircle, Copy, Check } from 'lucide-react';
 import { Property, PROPERTIES } from '../data/travelData';
 import { supabase } from '../lib/supabase';
 import { contactChannels } from '../lib/contactChannels';
+import { PayPalCheckout } from './PayPalCheckout';
 
 interface BookingModalProps {
   property: Property | null;
@@ -51,6 +52,9 @@ export const BookingModal: React.FC<BookingModalProps> = ({
   const [isConfirmed, setIsConfirmed] = useState(false);
   const [bookingNumber, setBookingNumber] = useState('');
   const [copiedVoucher, setCopiedVoucher] = useState(false);
+  const formRef = useRef<HTMLFormElement>(null);
+  const paymentSessionToken = useRef('');
+  const paypalClientId = import.meta.env.VITE_PAYPAL_CLIENT_ID?.trim() || '';
 
   // Calculation logic
   const calculateNights = () => {
@@ -74,52 +78,105 @@ export const BookingModal: React.FC<BookingModalProps> = ({
   
   const grandTotal = baseAccommodationTotal + serviceCommission + cityTax;
 
-  const handleCheckoutSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const validateCheckout = () => {
+    if (isSubmitting) return false;
+    if (!formRef.current?.reportValidity()) return false;
     if (!agreedToTerms) {
-      alert('Please agree to the Booking Terms & Conditions before completing payment.');
-      return;
+      setSubmitError('Please agree to the Booking Terms & Conditions before paying.');
+      return false;
     }
     if (!supabase) {
-      setSubmitError('Booking requests are unavailable until Supabase is configured.');
-      return;
+      setSubmitError('Online payment is unavailable until Supabase is configured.');
+      return false;
     }
+    setSubmitError('');
+    return true;
+  };
 
+  const createPayPalOrder = async () => {
+    if (!supabase) throw new Error('Online payment is not configured. Please contact us.');
     setIsSubmitting(true);
     setSubmitError('');
-    const requestNumber = `GQ-${new Date().toISOString().slice(0, 10).replaceAll('-', '')}-${crypto.randomUUID().slice(0, 8).toUpperCase()}`;
     try {
-      const { error } = await supabase.from('bookings').insert({
-        booking_number: requestNumber,
-        property_id: selectedProperty.id,
-        adults: guests,
-        children: 0,
-        check_in: checkIn,
-        check_out: checkOut,
-        customer_name: guestName,
-        customer_email: guestEmail,
-        customer_phone: guestPhone,
-        booking_status: 'pending',
-        currency: 'EUR',
+      const { data, error } = await supabase.functions.invoke<{
+        orderId: string;
+        sessionToken: string;
+        bookingNumber: string;
+        amount: string;
+      }>('paypal-checkout', {
+        body: {
+          action: 'create-order',
+          booking: {
+            propertyId: selectedProperty.id,
+            checkIn,
+            checkOut,
+            guests,
+            roomType,
+            rateType,
+            customerName: guestName,
+            customerEmail: guestEmail,
+            customerPhone: guestPhone,
+          },
+        },
       });
       if (error) throw error;
-      setBookingNumber(requestNumber);
-      setIsConfirmed(true);
-    } catch (error) {
-      setSubmitError(`Your booking request could not be saved. Please try again or contact us directly. ${error instanceof Error ? error.message : 'Unexpected error'}`);
+      if (!data?.orderId || !data.sessionToken || !data.bookingNumber || !data.amount) {
+        throw new Error('PayPal could not start checkout. Please try again.');
+      }
+      if (Number(data.amount).toFixed(2) !== grandTotal.toFixed(2)) {
+        throw new Error('The property price has changed. Please close and reopen the booking form to review the updated total.');
+      }
+      paymentSessionToken.current = data.sessionToken;
+      setBookingNumber(data.bookingNumber);
+      return data.orderId;
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const voucherText = `GQTravel-Hotels.com | Booking Request
-Dear ${guestName || '[Guest Name]'}, your booking request has been received.
+  const capturePayPalOrder = async (orderId: string) => {
+    if (!supabase || !paymentSessionToken.current) {
+      throw new Error('This payment session has expired. Please start checkout again.');
+    }
+    setIsSubmitting(true);
+    setSubmitError('');
+    try {
+      const { data, error } = await supabase.functions.invoke<{
+        bookingNumber: string;
+        amount: string;
+        currency: string;
+        paymentStatus: string;
+      }>('paypal-checkout', {
+        body: {
+          action: 'capture-order',
+          orderId,
+          sessionToken: paymentSessionToken.current,
+        },
+      });
+      if (error) throw error;
+      if (!data?.bookingNumber || data.paymentStatus !== 'paid') {
+        throw new Error('PayPal has not confirmed the payment. Please try again or contact us.');
+      }
+      setBookingNumber(data.bookingNumber);
+      setIsConfirmed(true);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handlePayPalError = (error: unknown) => {
+    setSubmitError(error instanceof Error ? error.message : 'PayPal could not process the payment. Please try again.');
+  };
+
+  const voucherText = `GQTravel-Hotels.com | Paid Booking Request
+Dear ${guestName || '[Guest Name]'}, your payment was received and your booking request was sent.
 🏠 ${selectedProperty.title}
 📍 ${selectedProperty.address || selectedProperty.location}
 Selected Room / ${roomType} Room
 📅 Check-in: ${checkIn} from 14:00
 📅 Check-out: ${checkOut} by 10:00
 🔖 Booking No.: ${bookingNumber}
+💳 Payment: Received via PayPal · €${grandTotal.toFixed(2)}
 ${contactChannels.map((channel) => `${channel.label}: ${channel.value}`).join('\n')}
 ✉️ Email: ${guestEmail}
 Rate Policy: ${rateType === 'flexible' ? 'Flexible Rate (Free cancellation up to 14 days)' : rateType === 'best_price' ? 'Best Price (Non-refundable)' : 'Early Booking (Free cancellation up to 28 days)'}
@@ -161,7 +218,7 @@ ${contactChannels.map((channel) => `${channel.label}: ${channel.value}`).join('\
               </p>
             </div>
 
-            <form onSubmit={handleCheckoutSubmit} className="space-y-6">
+            <form ref={formRef} onSubmit={(event) => event.preventDefault()} className="space-y-6">
               {/* Property & Room Selection */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
@@ -420,29 +477,25 @@ ${contactChannels.map((channel) => `${channel.label}: ${channel.value}`).join('\
 
               {submitError && <p role="alert" className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs text-rose-800">{submitError}</p>}
 
-              {/* Booking request submission */}
+              {/* PayPal checkout */}
               <div className="pt-2">
-                <button
-                  type="submit"
-                  disabled={!agreedToTerms || isSubmitting}
-                  className={`w-full py-4 rounded-xl font-bold text-xs uppercase tracking-wider text-white transition-all shadow-md flex items-center justify-center gap-2 ${
-                    agreedToTerms && !isSubmitting
-                      ? 'bg-teal-800 hover:bg-teal-900 active:scale-98'
-                      : 'bg-slate-300 cursor-not-allowed text-slate-500'
-                  }`}
-                >
-                  {isSubmitting ? (
-                    <span className="flex items-center gap-2">
-                      <ShieldCheck className="w-4 h-4 animate-pulse" />
-                      <span>Sending booking request…</span>
-                    </span>
-                  ) : (
-                    <span>Submit booking request · €{grandTotal.toFixed(2)}</span>
-                  )}
-                </button>
+                <PayPalCheckout
+                  clientId={paypalClientId}
+                  onValidate={validateCheckout}
+                  onCreateOrder={createPayPalOrder}
+                  onCapture={capturePayPalOrder}
+                  onCancel={() => setSubmitError('Payment was cancelled. No charge was made.')}
+                  onError={handlePayPalError}
+                />
+                {isSubmitting && (
+                  <p role="status" className="mt-2 text-center text-xs text-teal-800">
+                    <ShieldCheck className="mr-1 inline h-4 w-4 animate-pulse" />
+                    Processing secure payment…
+                  </p>
+                )}
                 <div className="text-center mt-2 text-[11px] text-slate-400 flex items-center justify-center gap-2">
                   <ShieldCheck className="w-3.5 h-3.5 text-teal-700" />
-                  <span>Your request remains pending until confirmed by our team.</span>
+                  <span>PayPal processes the payment securely. Your stay remains pending until availability is confirmed by our team.</span>
                 </div>
               </div>
             </form>
@@ -454,10 +507,10 @@ ${contactChannels.map((channel) => `${channel.label}: ${channel.value}`).join('\
               <CheckCircle2 className="w-7 h-7 text-emerald-600 shrink-0" />
               <div>
                 <h3 className="font-bold text-emerald-950 text-base">
-                  Booking Request Received
+                  Payment Received
                 </h3>
                 <p className="text-xs text-emerald-800">
-                  Your request has been sent to our team and is awaiting confirmation.
+                  Your payment was received and your booking request was sent. The stay remains pending until our team confirms availability.
                 </p>
               </div>
             </div>
@@ -473,10 +526,10 @@ ${contactChannels.map((channel) => `${channel.label}: ${channel.value}`).join('\
               </button>
 
               <div className="text-teal-400 font-bold text-sm">
-                GQTravel-Hotels.com | Booking Request
+                GQTravel-Hotels.com | Paid Booking Request
               </div>
               <div className="text-slate-200">
-                Dear {guestName}, your booking request has been received.
+                Dear {guestName}, your payment was received and your booking request has been sent.
               </div>
 
               <div className="space-y-1 text-slate-300 pt-2 border-t border-white/10">
@@ -486,6 +539,7 @@ ${contactChannels.map((channel) => `${channel.label}: ${channel.value}`).join('\
                 <div className="pt-2">📅 Check-in: {checkIn} from 14:00</div>
                 <div>📅 Check-out: {checkOut} by 10:00</div>
                 <div>🔖 Booking No.: {bookingNumber}</div>
+                <div>💳 Payment: Received via PayPal · €{grandTotal.toFixed(2)}</div>
                 {contactChannels.map((channel) => (
                   <div key={channel.label}>{channel.label}: {channel.value}</div>
                 ))}

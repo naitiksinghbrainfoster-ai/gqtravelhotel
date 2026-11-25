@@ -1,5 +1,12 @@
+export interface RoomPricingTable {
+  columns: string[];
+  rows: string[][];
+  extraRoomPricing?: RoomPricingTable;
+}
+
 export interface Property {
   id: string;
+  slug?: string;
   title: string;
   location: string;
   city: string;
@@ -13,6 +20,9 @@ export interface Property {
   amenities: string[];
   isSaarbruecken?: boolean;
   address?: string;
+  gallery?: string[];
+  fullDescription?: string;
+  roomPricing?: RoomPricingTable;
 }
 
 export interface Destination {

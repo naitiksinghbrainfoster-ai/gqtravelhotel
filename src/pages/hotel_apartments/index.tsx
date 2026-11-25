@@ -26,6 +26,7 @@ interface HotelApartmentsPageProps {
   propertiesLoading?: boolean;
   propertiesError?: string;
   content?: HomeContent;
+  onNavigate?: (path: string) => void;
 }
 
 const HotelApartmentsPage: React.FC<HotelApartmentsPageProps> = ({
@@ -33,6 +34,7 @@ const HotelApartmentsPage: React.FC<HotelApartmentsPageProps> = ({
   propertiesLoading = false,
   propertiesError = '',
   content,
+  onNavigate,
 }) => {
   const [selectedProperty, setSelectedProperty] = useState<Property | null>(null);
   const [search] = useState(() => new URLSearchParams(window.location.search));
@@ -70,7 +72,12 @@ const HotelApartmentsPage: React.FC<HotelApartmentsPageProps> = ({
       document.getElementById('stays')?.scrollIntoView({ behavior: 'smooth' });
       return;
     }
-    setSelectedProperty(property);
+    if (onNavigate) {
+      onNavigate(`/property/${property.slug || property.id}`);
+    } else {
+      window.history.pushState({}, '', `/property/${property.slug || property.id}`);
+      window.dispatchEvent(new PopStateEvent('popstate'));
+    }
   };
 
   return (

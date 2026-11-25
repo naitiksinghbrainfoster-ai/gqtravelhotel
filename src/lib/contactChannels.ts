@@ -10,6 +10,11 @@ export const GERMANY_WHATSAPP = {
   href: 'https://wa.me/4915214852424',
 } as const;
 
+export const GERMANY_OFFICE_PHONES = [
+  { label: 'Tel.', value: '+49 179 986 4242', href: 'tel:+491799864242' },
+  { label: 'Tel.', value: '+49 1521 485 2424', href: 'tel:+4915214852424' },
+] as const;
+
 export const HOTEL_EMAIL = {
   label: 'Email',
   value: 'hotel@gqtravel-hotels.com',

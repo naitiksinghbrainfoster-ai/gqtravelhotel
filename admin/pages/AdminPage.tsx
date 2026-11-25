@@ -17,6 +17,88 @@ import PropertiesPage, { PropertyEditor } from './PropertiesPage';
 import WebsiteContentPage from './WebsiteContentPage';
 import { type AdminSection, type DataRow, type PropertyDraft, asText, emptyDraft, filterRows, getErrorMessage, navigation, propertyId, propertyImageStoragePath, sectionDescription, websiteContentPages } from '../utils';
 
+const legacyRoomTypes = [
+  ['single', 'Single room'],
+  ['double', 'Double room'],
+  ['triple', 'Triple room'],
+  ['apartment_triple', 'Apartment triple room'],
+] as const;
+
+function roomPricingFromValue(value: unknown): PropertyDraft['room_pricing'] | null {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+  const pricing = value as Record<string, unknown>;
+  if (Array.isArray(pricing.columns) && Array.isArray(pricing.rows)) {
+    const columns = pricing.columns.map(asText);
+    return {
+      columns,
+      rows: pricing.rows
+        .filter(Array.isArray)
+        .map((row) => columns.map((_, index) => asText(row[index]))),
+    };
+  }
+
+  const rows = legacyRoomTypes.flatMap(([category, label]) => {
+    const value = pricing[category];
+    if (!value || typeof value !== 'object' || Array.isArray(value)) return [];
+    const rates = value as Record<string, unknown>;
+    if (!['standard', 'comfort', 'extra_person'].some((key) => key in rates)) return [];
+    return [[label, asText(rates.standard), asText(rates.comfort), asText(rates.extra_person)]];
+  });
+  return rows.length
+    ? { columns: [...emptyDraft.room_pricing.columns], rows }
+    : null;
+}
+
+function parseRoomPricing(value: unknown): PropertyDraft['room_pricing'] {
+  const pricing = roomPricingFromValue(value);
+  return pricing ?? {
+    columns: [...emptyDraft.room_pricing.columns],
+    rows: emptyDraft.room_pricing.rows.map((row) => [...row]),
+  };
+}
+
+function parseExtraRoomPricing(value: unknown): PropertyDraft['extra_room_pricing'] {
+  if (value && typeof value === 'object' && !Array.isArray(value)) {
+    const pricing = (value as Record<string, unknown>).extra_room_pricing;
+    if (pricing && typeof pricing === 'object' && !Array.isArray(pricing)) {
+      const table = pricing as Record<string, unknown>;
+      if (Array.isArray(table.columns) && Array.isArray(table.rows)) {
+        const columns = table.columns.map(asText);
+        return {
+          columns,
+          rows: table.rows
+            .filter(Array.isArray)
+            .map((row) => columns.map((_, index) => asText(row[index]))),
+        };
+      }
+    }
+  }
+  return {
+    columns: [...emptyDraft.extra_room_pricing.columns],
+    rows: emptyDraft.extra_room_pricing.rows.map((row) => [...row]),
+  };
+}
+
+function hasRoomPricing(value: unknown) {
+  const pricing = roomPricingFromValue(value);
+  return Boolean(
+    pricing
+    && pricing.columns.length > 0
+    && pricing.rows.some((row) => row.some((cell) => cell.trim().length > 0)),
+  );
+}
+
+function hasExtraRoomPricing(value: unknown) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+  const pricing = (value as Record<string, unknown>).extra_room_pricing;
+  if (!pricing || typeof pricing !== 'object' || Array.isArray(pricing)) return false;
+  const table = pricing as Record<string, unknown>;
+  return Array.isArray(table.columns)
+    && table.columns.length > 0
+    && Array.isArray(table.rows)
+    && table.rows.some((row) => Array.isArray(row) && row.some((cell) => asText(cell).trim().length > 0));
+}
+
 function getWebsiteContentError(error: unknown) {
   const message = getErrorMessage(error);
   return message.includes('site_content.key') && message.toLowerCase().includes('does not exist')
@@ -221,6 +303,10 @@ export default function AdminPage() {
           featured: Boolean(property.featured),
           status: property.status === 'published' ? 'published' : 'draft',
           amenities: [],
+          room_pricing_enabled: hasRoomPricing(property.room_pricing),
+          room_pricing: parseRoomPricing(property.room_pricing),
+          extra_room_pricing_enabled: hasExtraRoomPricing(property.room_pricing),
+          extra_room_pricing: parseExtraRoomPricing(property.room_pricing),
         }
       : emptyDraft);
     setFeaturedFile(null);
@@ -292,6 +378,15 @@ export default function AdminPage() {
         featured: draft.featured,
         status: draft.status,
         currency: 'EUR',
+        room_pricing: draft.room_pricing_enabled || draft.extra_room_pricing_enabled
+          ? {
+              columns: draft.room_pricing_enabled ? draft.room_pricing.columns : [],
+              rows: draft.room_pricing_enabled ? draft.room_pricing.rows : [],
+              ...(draft.extra_room_pricing_enabled
+                ? { extra_room_pricing: draft.extra_room_pricing }
+                : {}),
+            }
+          : {},
       };
 
       let saved: DataRow;

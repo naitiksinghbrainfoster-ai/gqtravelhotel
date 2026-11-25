@@ -11,6 +11,57 @@ export interface PublicBlogArticle extends NewsArticle {
   metaKeywords: string;
 }
 
+function normalizeRoomPricing(value: unknown): Property['roomPricing'] {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return undefined;
+  const pricing = value as Record<string, unknown>;
+  const normalizeTable = (tableValue: unknown): { columns: string[]; rows: string[][] } | undefined => {
+    if (!tableValue || typeof tableValue !== 'object' || Array.isArray(tableValue)) return undefined;
+    const table = tableValue as Record<string, unknown>;
+    if (!Array.isArray(table.columns) || !Array.isArray(table.rows)) return undefined;
+    const columns = table.columns.map((column) => column == null ? '' : String(column));
+    return {
+      columns,
+      rows: table.rows
+        .filter(Array.isArray)
+        .map((row) => columns.map((_, index) => {
+          const cell = row[index];
+          return cell == null ? '' : String(cell);
+        })),
+    };
+  };
+  if (Array.isArray(pricing.columns) && Array.isArray(pricing.rows)) {
+    const table = normalizeTable(pricing);
+    const extraRoomPricing = normalizeTable(pricing.extra_room_pricing);
+    return {
+      ...(table ?? { columns: [], rows: [] }),
+      ...(extraRoomPricing ? { extraRoomPricing } : {}),
+    };
+  }
+
+  const legacyRows = [
+    ['single', 'Single room'],
+    ['double', 'Double room'],
+    ['triple', 'Triple room'],
+    ['apartment_triple', 'Apartment triple room'],
+  ].flatMap(([key, label]) => {
+    const value = pricing[key];
+    if (!value || typeof value !== 'object' || Array.isArray(value)) return [];
+    const rates = value as Record<string, unknown>;
+    return [[
+      label,
+      rates.standard == null ? '' : String(rates.standard),
+      rates.comfort == null ? '' : String(rates.comfort),
+      rates.extra_person == null ? '' : String(rates.extra_person),
+    ]];
+  });
+  return legacyRows.length
+    ? {
+        columns: ['Room type', 'Standard (€)', 'Comfort (€)', 'Extra person (€)'],
+        rows: legacyRows,
+      }
+    : undefined;
+}
+
 function mapPublicBlogArticle(row: Record<string, unknown>): PublicBlogArticle {
   if (
     typeof row.id !== 'string'
@@ -130,8 +181,18 @@ export async function fetchPublicProperties(): Promise<Property[]> {
     const rating = Number(row.rating);
     const reviewsCount = Number(row.reviews_count);
     const location = [city, country].filter(Boolean).join(', ');
+    const slug = typeof row.slug === 'string' && row.slug.trim()
+      ? row.slug.trim()
+      : String(row.name || 'property')
+        .normalize('NFKD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-|-$/g, '') || String(row.id);
+    const roomPricing = normalizeRoomPricing(row.room_pricing);
     return {
       id: String(row.id),
+      slug,
       title: String(row.name || 'Untitled property'),
       location: location || address,
       city,
@@ -147,6 +208,11 @@ export async function fetchPublicProperties(): Promise<Property[]> {
       amenities,
       isSaarbruecken: `${city} ${location} ${address}`.toLowerCase().includes('saarbrück') || `${city} ${location} ${address}`.toLowerCase().includes('saarbrucken'),
       address: address || undefined,
+      gallery: gallery.flatMap((item: { image_url?: unknown }) =>
+        typeof item.image_url === 'string' ? [item.image_url] : [],
+      ),
+      fullDescription: typeof row.description === 'string' ? row.description : undefined,
+      roomPricing,
     };
   });
 }

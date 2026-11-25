@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { brandTint, btnOutline, btnPrimary } from '../service/shared';
 import { supabase } from '../../lib/supabase';
 import { HomeContent, contactPageContentDefaults, homeContentValue } from '../../lib/homeContent';
-import { contactChannels, GERMANY_WHATSAPP } from '../../lib/contactChannels';
+import { GERMANY_OFFICE_PHONES, GERMANY_WHATSAPP, HOTEL_EMAIL } from '../../lib/contactChannels';
 
 // Replace with the real Google Maps profile link of GQ Travel & Hotels when you have it.
 const GOOGLE_MAPS_URL =
@@ -90,8 +90,8 @@ const LetsTalk: React.FC<{ content?: HomeContent }> = ({ content }) => {
         </a>
 
         <ul className="mt-8 space-y-3">
-          {contactChannels.map((channel) => (
-            <li key={channel.label}>
+          {[...GERMANY_OFFICE_PHONES, HOTEL_EMAIL].map((channel) => (
+            <li key={channel.href}>
               <a
                 href={channel.href}
                 {...(channel.href.startsWith('https:') ? { target: '_blank', rel: 'noopener noreferrer' } : {})}

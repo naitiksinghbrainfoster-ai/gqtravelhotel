@@ -31,6 +31,7 @@ import ServicePage from './pages/service';
 import AboutPage from './pages/about';
 import ContactPage from './pages/contact';
 import HotelApartmentsPage from './pages/hotel_apartments';
+import PropertyDetailsPage from './pages/property-details';
 import AirportTransferSaarlandPage from './pages/airport-transfers-saarland';
 import CarRentalPage from './pages/car-rental';
 import SixtCarRentPage from './pages/sixt-car-rent';
@@ -40,7 +41,9 @@ import GlobalToursPage from './pages/global-tours';
 import HolidaysPage from './pages/holidays';
 import VacationPage from './pages/vacation';
 import GlobalFlightPage from './pages/global-flight';
+import GlobalFlightBookingPage from './pages/global-flight-booking';
 import CruisePage from './pages/cruise';
+import CruiseBookingPage from './pages/cruise-booking';
 import RailwayPage from './pages/railway';
 import BlogPage from './pages/blog';
 import BlogArticlePage from './pages/blog-article';
@@ -68,7 +71,9 @@ const seoPrefixByPath: Record<string, string> = {
   '/holidays': 'holidays',
   '/vacation': 'vacation',
   '/global-flight': 'global_flight',
+  '/global-flight-booking': 'global_flight',
   '/cruise': 'cruise',
+  '/cruise-booking': 'cruise',
   '/kreuzfahrten': 'cruise',
   '/railway-tickets': 'railway_tickets',
   '/blog': 'blog',
@@ -287,6 +292,24 @@ export default function App() {
         propertiesLoading={publicPropertiesLoading}
         propertiesError={publicPropertiesError}
         content={siteContent}
+        onNavigate={navigateTo}
+      />
+    );
+  }
+
+  const propertyDetailsMatch = currentPath.match(/^\/property\/([^/]+)\/?$/);
+  if (propertyDetailsMatch) {
+    const propertySlug = propertyDetailsMatch[1];
+    const property = publicProperties.find((item) =>
+      item.slug === propertySlug || item.id === propertySlug,
+    );
+    return (
+      <PropertyDetailsPage
+        property={property}
+        properties={publicProperties}
+        loading={publicPropertiesLoading}
+        onNavigate={navigateTo}
+        content={siteContent}
       />
     );
   }
@@ -326,8 +349,19 @@ export default function App() {
     return <VacationPage content={siteContent} />;
   }
 
+  if (currentPath === '/global-flight-booking' || currentPath === '/global-flight-booking/') {
+    return <GlobalFlightBookingPage content={siteContent} />;
+  }
+
   if (currentPath === '/global-flight' || currentPath === '/global-flight/') {
     return <GlobalFlightPage content={siteContent} />;
+  }
+
+  if (
+    currentPath === '/cruise-booking' ||
+    currentPath === '/cruise-booking/'
+  ) {
+    return <CruiseBookingPage content={siteContent} />;
   }
 
   if (
@@ -445,20 +479,17 @@ export default function App() {
     }
 
     if (params.tab === 'flights') {
-      const bookingUrl = siteContent.global_flight_portal_url
-        || 'https://flr-staging.ypsilon.net/?agent=mwaffiliate17&affiliate=993231&lang=en_GB';
-      window.location.assign(bookingUrl);
+      navigateTo('/global-flight-booking');
       return;
     }
 
     if (params.tab === 'cruise') {
-      navigateTo('/cruise');
+      navigateTo('/cruise-booking');
     }
   };
 
   const handleSelectProperty = (property: Property) => {
-    setSelectedProperty(property);
-    setBookingModalOpen(true);
+    navigateTo(`/property/${property.slug || property.id}`);
   };
 
   const handleSelectDestination = (dest: Destination) => {

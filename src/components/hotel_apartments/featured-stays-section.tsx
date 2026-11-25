@@ -216,7 +216,16 @@ const FeaturedStaysSection: React.FC<FeaturedStaysSectionProps> = ({
           {filteredProperties.map((property) => (
             <article
               key={property.id}
-              className="group flex flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white transition hover:-translate-y-1 hover:border-teal-800/30 hover:shadow-xl"
+              role="link"
+              tabIndex={0}
+              onClick={() => onSelectProperty(property)}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                  event.preventDefault();
+                  onSelectProperty(property);
+                }
+              }}
+              className="group flex cursor-pointer flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white transition hover:-translate-y-1 hover:border-teal-800/30 hover:shadow-xl focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-800"
             >
               <div className="relative aspect-[4/3] overflow-hidden bg-slate-100">
                 <img

@@ -118,7 +118,17 @@ export const TopBookNow: React.FC<TopBookNowProps> = ({
           {filteredProperties.map((property) => (
             <div
               key={property.id}
-              className="group flex flex-col rounded-2xl bg-white border border-slate-200/80 overflow-hidden hover:shadow-xl hover:border-teal-700/30 transition-all duration-300"
+              role="link"
+              tabIndex={0}
+              aria-label={`View details for ${property.title}`}
+              onClick={() => onSelectProperty(property)}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                  event.preventDefault();
+                  onSelectProperty(property);
+                }
+              }}
+              className="group flex cursor-pointer flex-col rounded-2xl bg-white border border-slate-200/80 overflow-hidden hover:shadow-xl hover:border-teal-700/30 transition-all duration-300 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-800"
             >
               {/* Image Container with Aspect Ratio */}
               <div className="relative aspect-4/3 w-full overflow-hidden bg-slate-100">
@@ -173,7 +183,11 @@ export const TopBookNow: React.FC<TopBookNowProps> = ({
                   </div>
 
                   <button
-                    onClick={() => onSelectProperty(property)}
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      onSelectProperty(property);
+                    }}
+                    onKeyDown={(event) => event.stopPropagation()}
                     className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-teal-800 bg-teal-50 hover:bg-teal-800 hover:text-white rounded-lg transition-colors active:scale-95"
                   >
                     <span>Book Now</span>

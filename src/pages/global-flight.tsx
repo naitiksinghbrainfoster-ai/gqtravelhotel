@@ -3,7 +3,6 @@ import { Navbar } from '../components/Navbar';
 import { Footer } from '../components/Footer';
 import { AiChatConcierge } from '../components/AiChatConcierge';
 import { LegalModal } from '../components/LegalModals';
-import GlobalFlightBookingPortal from '../components/global-flight/booking-portal';
 import { ArrowRight, BriefcaseBusiness, Globe2, Plane } from 'lucide-react';
 import { globalFlightContentDefaults, HomeContent, homeContentValue } from '../lib/homeContent';
 
@@ -13,18 +12,18 @@ const GlobalFlightPage: React.FC<{ content?: HomeContent }> = ({ content }) => {
   >(null);
   const [aiConciergeOpen, setAiConciergeOpen] = useState(false);
 
-  const bookingUrl = homeContentValue(content, 'global_flight_portal_url', globalFlightContentDefaults.global_flight_portal_url);
-  const openFlightBooking = () => window.location.assign(bookingUrl);
+  const navigateTo = (path: string) => {
+    window.history.pushState({}, '', path);
+    window.dispatchEvent(new PopStateEvent('popstate'));
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+  const openFlightBooking = () => navigateTo('/global-flight-booking');
 
   return (
     <div className="min-h-screen bg-white text-slate-800">
       <Navbar
         currentPath="/global-flight"
-        onNavigate={(path) => {
-          window.history.pushState({}, '', path);
-          window.dispatchEvent(new PopStateEvent('popstate'));
-          window.scrollTo({ top: 0, behavior: 'smooth' });
-        }}
+        onNavigate={navigateTo}
         onOpenBooking={openFlightBooking}
         onOpenLegal={(type) => setLegalModalType(type)}
         onOpenConcierge={() => setAiConciergeOpen(true)}
@@ -43,7 +42,11 @@ const GlobalFlightPage: React.FC<{ content?: HomeContent }> = ({ content }) => {
               {homeContentValue(content, 'global_flight_hero_description', globalFlightContentDefaults.global_flight_hero_description)}
             </p>
             <a
-              href={bookingUrl}
+              href="/global-flight-booking"
+              onClick={(event) => {
+                event.preventDefault();
+                openFlightBooking();
+              }}
               className="mt-7 inline-flex min-h-12 items-center gap-2 rounded-lg bg-teal-400 px-5 py-3 text-sm font-bold text-teal-950 transition hover:bg-teal-300 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
             >
               {homeContentValue(content, 'global_flight_hero_button', globalFlightContentDefaults.global_flight_hero_button)}
@@ -113,7 +116,6 @@ const GlobalFlightPage: React.FC<{ content?: HomeContent }> = ({ content }) => {
             </ol>
           </div>
         </section>
-        <GlobalFlightBookingPortal bookingUrl={bookingUrl} content={content} />
       </main>
 
       <Footer

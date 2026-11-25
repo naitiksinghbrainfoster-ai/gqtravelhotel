@@ -4,6 +4,9 @@ alter table public.properties
   add column if not exists postal_code text not null default '';
 
 alter table public.properties
+  add column if not exists room_pricing jsonb not null default '{}'::jsonb;
+
+alter table public.properties
   add column if not exists slug text not null default '',
   add column if not exists title text not null default '',
   add column if not exists property_type text not null default 'Hotel',

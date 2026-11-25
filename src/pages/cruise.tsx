@@ -13,19 +13,18 @@ const CruisePage: React.FC<{ content?: HomeContent }> = ({ content }) => {
   >(null);
   const [aiConciergeOpen, setAiConciergeOpen] = useState(false);
 
-  const bookingUrl = homeContentValue(content, 'cruise_portal_url', cruiseContentDefaults.cruise_portal_url);
-  const openCruiseBooking = () =>
-    window.open(bookingUrl, '_blank', 'noopener,noreferrer');
+  const navigateTo = (path: string) => {
+    window.history.pushState({}, '', path);
+    window.dispatchEvent(new PopStateEvent('popstate'));
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+  const openCruiseBooking = () => navigateTo('/cruise-booking');
 
   return (
     <div className="min-h-screen bg-white text-slate-800">
       <Navbar
         currentPath="/kreuzfahrten/"
-        onNavigate={(path) => {
-          window.history.pushState({}, '', path);
-          window.dispatchEvent(new PopStateEvent('popstate'));
-          window.scrollTo({ top: 0, behavior: 'smooth' });
-        }}
+        onNavigate={navigateTo}
         onOpenBooking={openCruiseBooking}
         onOpenLegal={(type) => setLegalModalType(type)}
         onOpenConcierge={() => setAiConciergeOpen(true)}
@@ -44,9 +43,11 @@ const CruisePage: React.FC<{ content?: HomeContent }> = ({ content }) => {
               {homeContentValue(content, 'cruise_hero_description', cruiseContentDefaults.cruise_hero_description)}
             </p>
             <a
-              href={bookingUrl}
-              target="_blank"
-              rel="noopener noreferrer"
+              href="/cruise-booking"
+              onClick={(event) => {
+                event.preventDefault();
+                openCruiseBooking();
+              }}
               className="mt-7 inline-flex min-h-12 items-center gap-2 rounded-lg bg-teal-400 px-5 py-3 text-sm font-bold text-teal-950 transition hover:bg-teal-300 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
             >
               {homeContentValue(content, 'cruise_hero_button', cruiseContentDefaults.cruise_hero_button)}
@@ -116,7 +117,10 @@ const CruisePage: React.FC<{ content?: HomeContent }> = ({ content }) => {
             </ol>
           </div>
         </section>
-        <CruiseBookingPortal bookingUrl={bookingUrl} content={content} />
+        <CruiseBookingPortal
+          content={content}
+          onOpenBooking={openCruiseBooking}
+        />
       </main>
 
       <Footer

@@ -4,10 +4,20 @@ type JsonRecord = Record<string, unknown>;
 
 class PaymentRequestError extends Error {}
 
-const allowedOrigins = (Deno.env.get('PAYPAL_ALLOWED_ORIGINS') || '')
-  .split(',')
-  .map((origin) => origin.trim())
-  .filter(Boolean);
+const localDevelopmentOrigins = [
+  'http://localhost:3000',
+  'http://127.0.0.1:3000',
+];
+
+const normalizeOrigin = (origin: string) => origin.trim().replace(/\/+$/, '');
+
+const allowedOrigins = new Set([
+  ...localDevelopmentOrigins,
+  ...(Deno.env.get('PAYPAL_ALLOWED_ORIGINS') || '')
+    .split(',')
+    .map(normalizeOrigin)
+    .filter(Boolean),
+]);
 
 function response(
   body: JsonRecord,
@@ -18,9 +28,10 @@ function response(
     'Content-Type': 'application/json',
     Vary: 'Origin',
   });
-  if (allowedOrigins.includes(origin)) {
-    headers.set('Access-Control-Allow-Origin', origin);
-    headers.set('Access-Control-Allow-Headers', 'authorization, apikey, content-type, x-client-info');
+  const normalizedOrigin = normalizeOrigin(origin);
+  if (allowedOrigins.has(normalizedOrigin)) {
+    headers.set('Access-Control-Allow-Origin', normalizedOrigin);
+    headers.set('Access-Control-Allow-Headers', 'authorization, apikey, content-type, x-client-info, x-supabase-api-version');
     headers.set('Access-Control-Allow-Methods', 'POST, OPTIONS');
   }
   return new Response(JSON.stringify(body), { status, headers });
@@ -379,7 +390,7 @@ Deno.serve(async (request) => {
   const origin = request.headers.get('Origin') || '';
   if (request.method === 'OPTIONS') return response({}, 200, origin);
   if (request.method !== 'POST') return response({ error: 'Method not allowed.' }, 405, origin);
-  if (!origin || !allowedOrigins.includes(origin)) return response({ error: 'Origin is not allowed.' }, 403, origin);
+  if (!origin || !allowedOrigins.has(normalizeOrigin(origin))) return response({ error: 'Origin is not allowed.' }, 403, origin);
 
   try {
     const body = await request.json() as JsonRecord;
